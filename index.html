@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="./socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="main">
+        <div class="username">
+            <h2>游客5337</h2>
+        </div>
+        <div class="left">
+            <ul class="content">
+
+            </ul>
+            <textarea class="message"></textarea>
+            <div class="send_info">
+                <span class="send">发送</span>
+            </div>
+        </div>
+        <div class="right">
+            <div class="ad"></div>
+            <div class="tourist">
+                <h3>在线游客<span id="num"></span></h3>
+                <ul class="zx_tourist">
+                    
+                </ul>
+            </div>
+        </div></div>
+    <div class="name">
+        <input type="text" placeholder="请先注册一个用户名长度不能超过6个字符" id="con">
+        <button id="name_btn">开始聊天</button>
+    </div>
+    <script src="js/jquery-1.8.3.min.js"></script>
+    <script>
+        var s=io.connect("http://169.254.30.190:1990");
+        console.log(s)
+        var username="";
+        var times="";
+        $("#name_btn").on("click",function(){
+            var tit=$("#con").val()
+            if(tit==""){
+                alert("输入的内容不能为空")
+            }else if(tit.length>6){
+                alert("用户名不能大于6")
+            }else{
+                s.emit("user",tit)
+            }
+        })
+        s.on("message",msgs=>{
+            $(".main").show()
+            $(".name").hide()
+            var str=""
+             for(var i=0;i<msgs.length;i++){
+                 str+="<li data-id="+msgs[i]+">"+msgs[i]+"</li>"
+             }
+            $(".zx_tourist").html(str)
+            s.on("errMsg",msg=>{
+                alert(msg)
+            })
+            s.on("heads",msg=>{
+                username=msg
+                $(".username h2").text(msg)
+                $(".content").append("<li class=new><span>欢迎"+msg+"进入聊天室</span></li>")
+            })
+            s.on("all",msg=>{
+                $(".zx_tourist").append("<li data-id="+msg+">"+msg+"</li>")
+                $(".content").append("<li class=new><span>欢迎"+msg+"进入聊天室</span></li>")
+            })
+            s.on("sends",msg=>{
+                var liss=$("<li></li>").html(msg)
+                $(".content").append(liss)
+                $(".content").scrollTop($(".content")[0].scrollHeight)
+            })
+            s.on("myself",msg=>{
+                var lis=$("<li class=r></li>").html(msg)
+                $(".content").append(lis)
+                $(".message").val("")
+                $(".content").scrollTop($(".content")[0].scrollHeight)
+            })
+            $(".message").on("keypress",function(e){
+                if(e.keyCode==13){
+                    $(".send").trigger("click")
+                    return false
+                }
+            })
+            $(".send").on("click",function(){
+               time=new Date();
+                var tit=$(".message").val();
+               if(tit==""||tit==" "){
+                   alert("内容不能为空")
+                   return false;
+               }
+                if(username!=""){
+                    var li=`<time>${username+" ("+time+")说："}</time>
+                            <span>${tit}</span>`
+                    s.emit("sends",li)
+                }
+            })
+           //下线
+           s.on("people",msg=>{
+             $("#num").text("("+msg+")")
+           })
+           s.on("close",msg=>{
+            $(".content").append("<li class=new><span>"+msg+"以下线</span></li>")
+               $(".zx_tourist li").each(function(){
+                   if($(this).attr("data-id")==msg){
+                       $(this).remove();
+                   }
+               })
+           })
+        })
+
+
+
+    </script>
+</body>
+</html>
